@@ -5,9 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+
+	"github.com/fxivan/commitnamegen_ia/util"
 )
 
 func formatJSON(data []byte) string {
@@ -62,11 +68,23 @@ func formatJSON(data []byte) string {
 }
 
 func MakeRequests() error {
-	token := "ya29.a0AeDClZAxswO-Wrr5MpvnGxmTh8Ua_1xrSAlxvNBVyJ6OKq-UYohg_kvV7koFdzyA3LZCuRDaQ4e_7pIybc2uqkhCzj1lVBE72rpFCNgGCF_dRt9c-Urx4_qc-SrG8bErtYKw-FxynzCN1oShOiyg3qisbCqHniRA4PUVAhTHUy-iMxEaCgYKAa4SARESFQHGX2Mi6BD4OBi_jPMuvsOYepZBkA0182"
-	url := "https://us-central1-aiplatform.googleapis.com/v1/projects/proyectia-440422/locations/us-central1/publishers/google/models/gemini-1.0-pro:streamGenerateContent?alt=sse"
 
-	description := "agregando gap 4px"
-	ticket := "1234"
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	url := os.Getenv("URL_PROYECT_GCP")
+
+	if len(os.Args) < 3 {
+		fmt.Println("Uso: go run main.go <ticket> <description>")
+		return nil
+	}
+
+	ticket := os.Args[1]
+	description := os.Args[2]
+	fmt.Println("Ticket -->", ticket)
+	fmt.Println("Description -->", description)
 	dateCurrent := time.Now().Format("2006-01-02")
 
 	prompt := fmt.Sprintf(`
@@ -126,7 +144,7 @@ func MakeRequests() error {
 		return fmt.Errorf("error creando la solicitud: %v", err)
 	}
 
-	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("Authorization", "Bearer "+strings.TrimSpace(util.GenerateToken()))
 	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -142,13 +160,8 @@ func MakeRequests() error {
 	}
 
 	response := formatJSON(body)
-	// fmt.Println("Respuesta formateada:", response)
 
 	options := strings.Split(response, "\n")
-	if len(options) < 4 {
-		return fmt.Errorf("no se obtuvieron las 4 opciones esperadas")
-	}
-
 	for _, option := range options {
 		if strings.HasPrefix(option, "[") {
 			fmt.Println(option)
