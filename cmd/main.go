@@ -87,57 +87,62 @@ func MakeRequests() error {
 	fmt.Println("Description -->", description)
 	dateCurrent := time.Now().Format("2006-01-02")
 
-	prompt := fmt.Sprintf(`
-		Tu salida que me tiene que dar es un commit que se entienda con lo que yo te pase, la salida que espero es:
-		[PREFIJO] #TICKET DescripcionCommit FECHA
+	prompt := `
+	Genera un commit claro y detallado según la convención proporcionada. El formato de salida esperado es:
+	[PREFIJO] #TICKET Descripción FECHA
 
-		Prefijo:
-		- FIX: Para correcciones de errores
-		- FEAT: Para nuevas funcionalidades
-		- DOCS: Para cambios en la documentación
-		- STYLE: Cambios de formato, tabulaciones, espacios o puntos y coma, etc; no afectan al usuario.
-		- REFACTOR: Para un cambio en el código que no corrige un error ni agrega una función
-		- TEST: Para agregar pruebas que faltaban
-		- CHORE: Para cambios en el proceso de compilación o herramientas auxiliares y bibliotecas como la generación de documentación
-		- PERF : Para mejoras de rendimiento
-		- SECURITY: Para mejoras de seguridad
-		- WIP: Para trabajo en progreso
-		- RELEASE: Para versiones
-		- REVERT: Para revertir a un commit anterior
-		- BUILD: Para cambios que afectan el sistema de construcción o dependencias externas
-		- CI: Para cambios en archivos y scripts de configuración de CI
-		- DEPLOY: Para cambios en scripts y configuración de despliegue
-		- DEVOPS: Para cambios en scripts y configuración de DevOps
-		- DOCKER: Para cambios en scripts y configuración de Docker
-		- K8S: Para cambios en scripts y configuración de Kubernetes
-		- SWARM: Para cambios en scripts y configuración de Docker Swarm
+	Usa los siguientes prefijos:
+	- FIX: Corrección de errores
+	- FEAT: Nueva funcionalidad
+	- DOCS: Cambios en documentación
+	- STYLE: Formato (tabulación, espacios, etc.) sin afectar la funcionalidad
+	- REFACTOR: Cambios en el código sin afectar funcionalidad
+	- TEST: Adición de pruebas
+	- CHORE: Cambios en herramientas o bibliotecas auxiliares
+	- PERF: Mejora de rendimiento
+	- SECURITY: Mejora de seguridad
+	- WIP: Trabajo en progreso
+	- RELEASE: Nueva versión
+	- REVERT: Revertir un commit anterior
+	- BUILD: Cambios en sistema de construcción o dependencias externas
+	- CI: Cambios en configuración de CI
+	- DEPLOY: Cambios en scripts de despliegue
+	- DEVOPS: Cambios en scripts de DevOps
+	- DOCKER: Cambios en scripts de Docker
+	- K8S: Cambios en configuración de Kubernetes
+	- SWARM: Cambios en Docker Swarm
+`
 
-		Este es una breve descripcion del commit y quiero que mejores ese comentario para que sea entendible y tenga sentido con lo que te pase.
-		Descripcion: %s
+	// Crear la descripción del usuario con el ticket y la fecha actuales
+	descriptionUser := fmt.Sprintf(`
+	Crea un commit según las buenas prácticas anteriores.
+	Ticket: %s
+	Descripción: %s
+	Fecha actual: %s
+`, ticket, description, dateCurrent)
 
-		Necesito que sea una sola salida, no quiero que me des varias salidas, solo una salida con el prefijo correcto y la descripcion correcta.}
-		Ejemplo:
-		- [PREFIJO] #%s %s %s
-		Quiero que me des 4 opciones de salida, si no me das las 4 opciones de salida, no se considera la tarea como completada.
-	`, description, ticket, description, dateCurrent)
-
+	// Formatear la solicitud JSON con los datos relevantes y configuración de generación
 	jsonData := fmt.Sprintf(`{
-		"contents": {
+	"contents": [
+		{
+			"role": "model",
+			"parts": { "text": "%s" }
+		},
+		{
 			"role": "user",
-			"parts": {
-				"text": "%s"
-			}
-		},
-		"safety_settings": {
-			"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-			"threshold": "BLOCK_LOW_AND_ABOVE"
-		},
-		"generation_config": {
-			"temperature": 0.2,
-			"topP": 0.8,
-			"topK": 40
+			"parts": { "text": "%s" }
 		}
-	}`, prompt)
+	],
+	"safety_settings": {
+		"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+		"threshold": "BLOCK_LOW_AND_ABOVE"
+	},
+	"generation_config": {
+		"temperature": 0.2,
+		"topP": 0.8,
+		"topK": 40
+	}
+}`, prompt, descriptionUser)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonData)))
 	if err != nil {
@@ -160,12 +165,12 @@ func MakeRequests() error {
 	}
 
 	response := formatJSON(body)
-
+	fmt.Print("Response -->", response)
 	options := strings.Split(response, "\n")
 	for _, option := range options {
-		if strings.HasPrefix(option, "[") {
-			fmt.Println(option)
-		}
+		// if strings.HasPrefix(option, "[") {
+		fmt.Println(option)
+		// }
 	}
 
 	return nil
